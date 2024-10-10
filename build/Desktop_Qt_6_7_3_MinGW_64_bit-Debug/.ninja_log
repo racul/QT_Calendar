@@ -1,0 +1,9 @@
+# ninja log v6
+13	926	7499990711277056	Calender_autogen/timestamp	b920e31c7ec57ca4
+13	926	7499990711277056	Calender_autogen/mocs_compilation.cpp	b920e31c7ec57ca4
+13	926	7499990711277056	C:/Users/JeongMin/Documents/Calender/build/Desktop_Qt_6_7_3_MinGW_64_bit-Debug/Calender_autogen/timestamp	b920e31c7ec57ca4
+13	926	7499990711277056	C:/Users/JeongMin/Documents/Calender/build/Desktop_Qt_6_7_3_MinGW_64_bit-Debug/Calender_autogen/mocs_compilation.cpp	b920e31c7ec57ca4
+940	3770	7499990712545288	CMakeFiles/Calender.dir/Calender_autogen/mocs_compilation.cpp.obj	d87f4c50f1627ecc
+946	3972	7499990712670383	CMakeFiles/Calender.dir/main.cpp.obj	2db3682c00a7e515
+953	4078	7499990712670383	CMakeFiles/Calender.dir/mainwindow.cpp.obj	bd449d3e0126c25f
+4078	4409	7499990744035734	Calender.exe	cefdc35db87ebecf
