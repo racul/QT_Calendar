@@ -2,21 +2,33 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
+#include <QTableView>
+#include <QPushButton>
+#include <QLabel>
+#include <QDate>
 
-namespace Ui {
-class MainWindow;
-}
 
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
 
 public:
-    explicit MainWindow(QWidget *parent = nullptr);
-    ~MainWindow();
+    MainWindow(QWidget *parent = nullptr);
+
+private slots:
+    void onCellClicked(const QModelIndex &index);
+    void onPrevMonthClicked();
+    void onNextMonthClicked();
 
 private:
-    Ui::MainWindow *ui;
+    void updateMonthLabel();
+    void updateCalendarView();
+
+    QTableView *calendarView;
+    QPushButton *prevMonthButton;
+    QPushButton *nextMonthButton;
+    QLabel *monthLabel;
+    QDate currentMonth;
 };
 
 #endif // MAINWINDOW_H

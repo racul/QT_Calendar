@@ -2,6 +2,8 @@
 
 #include <QApplication>
 
+// 프로그램 실행 진입점
+
 int main(int argc, char *argv[])
 {
     QApplication a(argc, argv);
