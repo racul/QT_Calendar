@@ -19,12 +19,14 @@ private slots:
     void onCellClicked(const QModelIndex &index);
     void onPrevMonthClicked();
     void onNextMonthClicked();
+    void onAddEventButtonClicked();
 
 private:
     void updateMonthLabel();
     void updateCalendarView();
 
     QTableView *calendarView;
+    QPushButton *addEventButton;
     QPushButton *prevMonthButton;
     QPushButton *nextMonthButton;
     QLabel *monthLabel;
