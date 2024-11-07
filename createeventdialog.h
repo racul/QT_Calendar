@@ -15,6 +15,10 @@ public:
     explicit CreateEventDialog(QWidget *parent = nullptr);
     ~CreateEventDialog();
 
+private slots:
+    void onSaveButtonClicked();
+    void onCancelButtonClicked();
+
 private:
     Ui::CreateEventDialog *ui;
 };
