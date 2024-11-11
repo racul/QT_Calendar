@@ -1,7 +1,7 @@
 #include "calendarmodel.h"
 
-CalendarModel::CalendarModel(const QDate &month, QObject *parent)
-    : QAbstractTableModel(parent)
+CalendarModel::CalendarModel(const QDate &month, CalendarManager *manager, QObject *parent)
+    : QAbstractTableModel(parent), calendarManager(manager)
 {
     // 초기화
     // fisrtDayOfMonth : 해당 달의 1일을 QDate로 저장
@@ -24,22 +24,33 @@ int CalendarModel::columnCount(const QModelIndex & /* parent */) const
 
 QVariant CalendarModel::data(const QModelIndex &index, int role) const
 {
-    if (role == Qt::DisplayRole) {
-        // 달력의 첫 주에 시작되는 요일을 기준으로 날짜를 계산
-        int dayOfWeek = firstDayOfMonth.dayOfWeek(); // 첫 날의 요일(1 = 월요일)
-        int cellNumber = index.row() * 7 + index.column(); // 셀 번호 계산
-        int dayNumber = cellNumber - (dayOfWeek - 1) + 1;  // 실제 날짜 계산
+    if (!index.isValid()) return QVariant();
 
-        if (dayNumber > 0 && dayNumber <= daysInMonth) {
-            return QString::number(dayNumber); // 유효한 날짜면 숫자 표시
+    int dayOfWeek = firstDayOfMonth.dayOfWeek();
+    int cellNumber = index.row() * 7 + index.column();
+    int dayNumber = cellNumber - (dayOfWeek - 1) + 1;
+
+    if (dayNumber > 0 && dayNumber <= daysInMonth) {
+        QDate date = QDate(firstDayOfMonth.year(), firstDayOfMonth.month(), dayNumber);
+
+        if (role == Qt::DisplayRole) {
+            // 날짜를 반환
+            return QString::number(dayNumber);
         }
-    }
-    // TextAlignmentRole: 텍스트 가운데 정렬 설정
-    else if (role == Qt::TextAlignmentRole) {
-        return Qt::AlignCenter;  // 가운데 정렬 설정
+        else if (role == Qt::UserRole) {
+            // 첫 번째 일정 이름 반환 (있을 경우)
+            QList<Event> events = calendarManager->getEventsForDate(date);
+            if (!events.isEmpty()) {
+                return events[0].name;
+            }
+        }
+        else if (role == Qt::TextAlignmentRole) {
+            return Qt::AlignCenter;  // 날짜는 상단 가운데 정렬
+        }
     }
     return QVariant();
 }
+
 
 QVariant CalendarModel::headerData(int section, Qt::Orientation orientation, int role) const
 {

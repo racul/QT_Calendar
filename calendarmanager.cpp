@@ -53,6 +53,40 @@ bool CalendarManager::saveEvent(const QString &name, const QDate &date, const QT
 
 bool CalendarManager::loadEvents()
 {
-    // 파일에서 일정을 불러오는 기능 추가.
+    QFile file(filename);
+    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        qDebug() << "Failed to open file:" << file.errorString();
+        return false;
+    }
+
+    events.clear();  // 기존 일정 데이터를 초기화
+
+    QTextStream in(&file);
+    while (!in.atEnd()) {
+        QString line = in.readLine();
+        QStringList fields = line.split(",");
+
+        if (fields.size() == 4) {  // 필드가 4개인지 확인
+            QString name = fields[0];
+            QDate date = QDate::fromString(fields[1], "yyyy-MM-dd");
+            QTime startTime = QTime::fromString(fields[2], "HH:mm");
+            QTime endTime = QTime::fromString(fields[3], "HH:mm");
+
+            events.append({name, date, startTime, endTime});
+        }
+    }
+
+    file.close();
     return true;
+}
+
+QList<Event> CalendarManager::getEventsForDate(const QDate &date) const
+{
+    QList<Event> eventsForDate;
+    for (const Event &event : events) {
+        if (event.date == date) {
+            eventsForDate.append(event);
+        }
+    }
+    return eventsForDate;
 }

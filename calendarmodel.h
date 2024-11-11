@@ -3,13 +3,14 @@
 
 #include <QAbstractTableModel>
 #include <QDate>
+#include "calendarmanager.h"
 
 class CalendarModel : public QAbstractTableModel
 {
     Q_OBJECT
 
 public:
-    CalendarModel(const QDate &month, QObject *parent = nullptr);
+    CalendarModel(const QDate &month, CalendarManager *manager, QObject *parent = nullptr);
 
     int rowCount(const QModelIndex &parent = QModelIndex()) const override;
     int columnCount(const QModelIndex &parent = QModelIndex()) const override;
@@ -20,6 +21,7 @@ public:
 private:
     QDate firstDayOfMonth;
     int daysInMonth;
+    CalendarManager *calendarManager;
 };
 
 #endif // CALENDARMODEL_H

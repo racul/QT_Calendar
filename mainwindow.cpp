@@ -1,5 +1,6 @@
 #include "mainwindow.h"
 #include "calendarmodel.h"
+#include "calendardelegate.h"
 #include <QTableView>
 #include <QPushButton>
 #include <QLabel>
@@ -24,10 +25,11 @@ MainWindow::MainWindow(QWidget *parent)
     // QStackedWidget 생성
     stackedWidget = new QStackedWidget(this);
 
-    // 일정 관리 instance
+    // CalendarManager 초기화 및 이벤트 로드
     calendarManager = new CalendarManager("events.csv");
+    calendarManager->loadEvents();
 
-    // 1. 첫 번째 페이지: 달력 화면
+    // 1. 첫 번째 페이지: 달력 화면 **********
     QWidget *calendarPage = new QWidget(this);
 
     // 달력 뷰 (QTableView 생성 및 설정)
@@ -52,8 +54,12 @@ MainWindow::MainWindow(QWidget *parent)
     updateMonthLabel();
 
     // CalendarModel을 사용하여 QTableView에 설정
-    CalendarModel *model = new CalendarModel(currentMonth, this);
+    CalendarModel *model = new CalendarModel(currentMonth, calendarManager, this);
     calendarView->setModel(model);
+
+    // CalendarDelegate 설정
+    CalendarDelegate *delegate = new CalendarDelegate(this);
+    calendarView->setItemDelegate(delegate);
 
     // 일정 추가 버튼 생성
     addEventButton = new QPushButton("+", this);
@@ -103,7 +109,7 @@ MainWindow::MainWindow(QWidget *parent)
     // 메인 페이지에 레이아웃 설정
     calendarPage->setLayout(calendarLayout);
 
-    // 2. 두 번째 페이지: 일정 추가/편집 화면
+    // 2. 두 번째 페이지: 일정 추가/편집 화면 ***************
     QWidget *editEventPage = new QWidget(this);
     QVBoxLayout *editLayout = new QVBoxLayout(editEventPage);
 
@@ -134,7 +140,7 @@ MainWindow::MainWindow(QWidget *parent)
     editEventPage->setLayout(editLayout);
 
 
-    // 페이지를 QStackedWidget에 추가
+    // 페이지를 QStackedWidget에 추가 **************
     stackedWidget->addWidget(calendarPage);  // 페이지 0: 달력 화면
     stackedWidget->addWidget(editEventPage); // 페이지 1: 일정 추가/편집 화면
 
@@ -165,7 +171,7 @@ void MainWindow::updateMonthLabel()
 
 void MainWindow::updateCalendarView()
 {
-    CalendarModel *newModel = new CalendarModel(currentMonth, this);
+    CalendarModel *newModel = new CalendarModel(currentMonth, calendarManager, this);
     calendarView->setModel(newModel);
     updateMonthLabel();
 }
@@ -205,6 +211,7 @@ void MainWindow::onSaveButtonClicked()
     // 이벤트 데이터를 CSV 파일에 저장
     if (calendarManager->saveEvent(eventName, eventDate, startTime, endTime)) {
         QMessageBox::information(this, "저장 완료", "일정이 저장되었습니다.");
+        calendarManager->loadEvents();
     } else {
         QMessageBox::critical(this, "저장 실패", "일정을 저장하는 데 실패했습니다.");
     }
