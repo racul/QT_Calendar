@@ -1,6 +1,7 @@
 #include "mainwindow.h"
 #include "calendarmodel.h"
 #include "calendardelegate.h"
+#include "dayview.h"
 #include <QTableView>
 #include <QPushButton>
 #include <QLabel>
@@ -30,7 +31,7 @@ MainWindow::MainWindow(QWidget *parent)
     calendarManager->loadEvents();
 
     // 1. 첫 번째 페이지: 달력 화면 **********
-    QWidget *calendarPage = new QWidget(this);
+    calendarPage = new QWidget(this);
 
     // 달력 뷰 (QTableView 생성 및 설정)
     calendarView = new QTableView(this);
@@ -81,6 +82,9 @@ MainWindow::MainWindow(QWidget *parent)
     // 셀 클릭 시 시그널-슬롯 연결
     connect(calendarView, &QTableView::clicked, this, &MainWindow::onCellClicked);
 
+    // 달력 뷰 더블 클릭 시 DayView로 이동
+    connect(calendarView, &QTableView::doubleClicked, this, &MainWindow::onCellDoubleClicked);
+
     // 월 변경 버튼 연결
     connect(prevMonthButton, &QPushButton::clicked, this, &MainWindow::onPrevMonthClicked);
     connect(nextMonthButton, &QPushButton::clicked, this, &MainWindow::onNextMonthClicked);
@@ -98,6 +102,15 @@ MainWindow::MainWindow(QWidget *parent)
     calendarLayout->addLayout(headerLayout);
     calendarLayout->addWidget(calendarView);
 
+    // 선택된 날짜 레이블 초기화
+    selectedDateLabel = new QLabel(this);
+    selectedDateLabel->setAlignment(Qt::AlignCenter);
+    selectedDateLabel->setStyleSheet("font-size: 16px; color: #333;");
+    selectedDateLabel->setText("날짜를 선택하세요.");
+
+    // 달력 화면에 레이블 추가
+    calendarLayout->addWidget(selectedDateLabel);
+
     // 우측 하단 고정 버튼 레이아웃
     QVBoxLayout *buttonLayout = new QVBoxLayout();
     // buttonLayout->addStretch();  // 위쪽 여백 채우기
@@ -110,7 +123,7 @@ MainWindow::MainWindow(QWidget *parent)
     calendarPage->setLayout(calendarLayout);
 
     // 2. 두 번째 페이지: 일정 추가/편집 화면 ***************
-    QWidget *editEventPage = new QWidget(this);
+    editEventPage = new QWidget(this);
     QVBoxLayout *editLayout = new QVBoxLayout(editEventPage);
 
     eventTitleLabel = new QLabel("일정 추가/편집", editEventPage);
@@ -139,10 +152,20 @@ MainWindow::MainWindow(QWidget *parent)
     editLayout->addWidget(cancelButton);
     editEventPage->setLayout(editLayout);
 
+    // 3. 세 번째 페이지: 상세 일정 화면
+    dayView = new DayView(this);
+
+    // 뒤로가기 버튼 클릭 시 캘린더 화면으로 돌아가는 슬롯 연결
+    connect(dayView, &DayView::backButtonClicked, this, [this]() {
+        stackedWidget->setCurrentWidget(calendarPage);
+        qDebug() << "Returned to main calendar view.";
+    });
+
 
     // 페이지를 QStackedWidget에 추가 **************
     stackedWidget->addWidget(calendarPage);  // 페이지 0: 달력 화면
     stackedWidget->addWidget(editEventPage); // 페이지 1: 일정 추가/편집 화면
+    stackedWidget->addWidget(dayView);       // 페이지 2: 상세 일정 화면
 
     // 메인 레이아웃 설정
     QVBoxLayout *mainLayout = new QVBoxLayout();
@@ -161,7 +184,22 @@ void MainWindow::onCellClicked(const QModelIndex &index)
 {
     CalendarModel *model = static_cast<CalendarModel *>(calendarView->model());
     QDate clickedDate = model->getDateForIndex(index);
-    qDebug() << "클릭된 날짜:" << clickedDate;
+
+    // 선택된 날짜를 레이블에 표시
+    selectedDateLabel->setText("선택된 날짜: " + clickedDate.toString("yyyy-MM-dd"));
+}
+
+void MainWindow::onCellDoubleClicked(const QModelIndex &index)
+{
+    CalendarModel *model = static_cast<CalendarModel *>(calendarView->model());
+    QDate clickedDate = model->getDateForIndex(index);
+
+    // 해당 날짜의 일정 가져오기
+    QList<Event> events = calendarManager->getEventsForDate(clickedDate);
+
+    // 일정 상세 페이지로 전환
+    dayView->displaySchedule(clickedDate, events);
+    stackedWidget->setCurrentWidget(dayView);
 }
 
 void MainWindow::updateMonthLabel()
@@ -191,7 +229,7 @@ void MainWindow::onNextMonthClicked()
 void MainWindow::onAddEventButtonClicked()
 {
     // 일정 추가/편집 화면으로 전환
-    stackedWidget->setCurrentIndex(1);
+    stackedWidget->setCurrentWidget(editEventPage);
 }
 
 void MainWindow::onSaveButtonClicked()
@@ -217,12 +255,12 @@ void MainWindow::onSaveButtonClicked()
     }
 
     // 캘린더 화면으로 돌아가기
-    stackedWidget->setCurrentIndex(0);
+    stackedWidget->setCurrentWidget(calendarPage);
 }
 
 
 void MainWindow::onCancelButtonClicked()
 {
     // 캘린더 화면으로 돌아가기
-    stackedWidget->setCurrentIndex(0);
+    stackedWidget->setCurrentWidget(calendarPage);
 }

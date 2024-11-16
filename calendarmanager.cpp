@@ -24,6 +24,9 @@ CalendarManager::CalendarManager(const QString &filename)
 
 bool CalendarManager::saveEvent(const QString &name, const QDate &date, const QTime &startTime, const QTime &endTime)
 {
+    Event event = { name, date, startTime, endTime };
+    events.append(event);
+
     QFile file(filename);
 
     // 파일 디렉토리 확인 및 생성
@@ -66,13 +69,21 @@ bool CalendarManager::loadEvents()
         QString line = in.readLine();
         QStringList fields = line.split(",");
 
-        if (fields.size() == 4) {  // 필드가 4개인지 확인
-            QString name = fields[0];
-            QDate date = QDate::fromString(fields[1], "yyyy-MM-dd");
-            QTime startTime = QTime::fromString(fields[2], "HH:mm");
-            QTime endTime = QTime::fromString(fields[3], "HH:mm");
+        if (fields.size() != 4) {
+            qWarning() << "Invalid line format in file:" << line;
+            continue;
+        }
 
-            events.append({name, date, startTime, endTime});
+        Event event;
+        event.name = fields[0];
+        event.date = QDate::fromString(fields[1], "yyyy-MM-dd");
+        event.startTime = QTime::fromString(fields[2], "hh:mm");
+        event.endTime = QTime::fromString(fields[3], "hh:mm");
+
+        if (event.date.isValid() && event.startTime.isValid() && event.endTime.isValid()) {
+            events.append(event);
+        } else {
+            qWarning() << "Invalid event data:" << line;
         }
     }
 
