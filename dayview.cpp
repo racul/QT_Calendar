@@ -5,6 +5,7 @@
 #include <QVBoxLayout>
 #include <QDebug>
 #include <QPushButton>
+#include <QEvent>
 
 DayView::DayView(QWidget *parent)
     : QWidget(parent) {
@@ -125,6 +126,10 @@ void DayView::displaySchedule(const QDate &date, const QList<Event> &events) {
         eventLayout->setContentsMargins(2, 0, 2, 0);
         eventLayout->setSpacing(0);
 
+        // 더블클릭 이벤트 처리를 위한 이벤트 필터 설치
+        eventWidget->installEventFilter(this);
+        eventWidget->setProperty("event", QVariant::fromValue(event));
+
         QLabel* eventLabel = new QLabel(
             QString("%1\n%2 - %3")
                 .arg(event.name)
@@ -208,9 +213,28 @@ bool DayView::checkEventContainer(QGridLayout* gridLayout, int startRow, int end
     return 0;
 }
 
-
 void DayView::onBackButtonClicked() {
     // 뒤로가기 버튼 클릭 시 동작 구현
     qDebug() << "Back button clicked!";
     emit backButtonClicked();  // 신호를 방출하여 부모 또는 다른 위젯에서 처리
+}
+
+bool DayView::eventFilter(QObject *watched, QEvent *event)
+{
+    if (event->type() == QEvent::MouseButtonDblClick) {
+        QWidget *widget = qobject_cast<QWidget*>(watched);
+        if (widget && widget->property("event").isValid()) {
+            Event clickedEvent = widget->property("event").value<Event>();
+            emit eventDoubleClicked(clickedEvent);
+            return true;
+        }
+    }
+    return QObject::eventFilter(watched, event);
+}
+
+void DayView::onEventDoubleClicked(const Event &event)
+{
+    qDebug() << "Event double-clicked:" << event.name;
+    // 여기에서 이벤트 수정 다이얼로그를 열거나 필요한 작업을 수행합니다.
+    // 예: emit editEvent(event);
 }

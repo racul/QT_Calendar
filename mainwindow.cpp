@@ -136,8 +136,11 @@ MainWindow::MainWindow(QWidget *parent)
     // 저장 및 취소 버튼
     saveButton = new QPushButton("저장", editEventPage);
     cancelButton = new QPushButton("취소", editEventPage);
+    deleteButton = new QPushButton("삭제", editEventPage); // 수정시 삭제 버튼
     connect(saveButton, &QPushButton::clicked, this, &MainWindow::onSaveButtonClicked);
     connect(cancelButton, &QPushButton::clicked, this, &MainWindow::onCancelButtonClicked);
+    connect(deleteButton, &QPushButton::clicked, this, &MainWindow::onDeleteButtonClicked);
+
 
     editLayout->addWidget(eventTitleLabel);
     editLayout->addWidget(new QLabel("일정 이름"));
@@ -150,6 +153,7 @@ MainWindow::MainWindow(QWidget *parent)
     editLayout->addWidget(endTimeEdit);
     editLayout->addWidget(saveButton);
     editLayout->addWidget(cancelButton);
+    editLayout->addWidget(deleteButton);
     editEventPage->setLayout(editLayout);
 
     // 3. 세 번째 페이지: 상세 일정 화면
@@ -161,6 +165,7 @@ MainWindow::MainWindow(QWidget *parent)
         qDebug() << "Returned to main calendar view.";
     });
 
+    connect(dayView, &DayView::eventDoubleClicked, this, &MainWindow::onEventDoubleClicked);
 
     // 페이지를 QStackedWidget에 추가 **************
     stackedWidget->addWidget(calendarPage);  // 페이지 0: 달력 화면
@@ -183,10 +188,10 @@ MainWindow::MainWindow(QWidget *parent)
 void MainWindow::onCellClicked(const QModelIndex &index)
 {
     CalendarModel *model = static_cast<CalendarModel *>(calendarView->model());
-    QDate clickedDate = model->getDateForIndex(index);
+    lastClickedDate = model->getDateForIndex(index);
 
     // 선택된 날짜를 레이블에 표시
-    selectedDateLabel->setText("선택된 날짜: " + clickedDate.toString("yyyy-MM-dd"));
+    selectedDateLabel->setText("선택된 날짜: " + lastClickedDate.toString("yyyy-MM-dd"));
 }
 
 void MainWindow::onCellDoubleClicked(const QModelIndex &index)
@@ -228,6 +233,24 @@ void MainWindow::onNextMonthClicked()
 
 void MainWindow::onAddEventButtonClicked()
 {
+    currentEditingEvent = Event();
+
+    // 일정 수정 화면의 필드들을 날짜 정보로 채우기
+    eventTitleLabel->setText("일정 추가");
+    eventNameLineEdit->clear();
+
+    // 마지막으로 클릭한 날짜로 설정, 없으면 현재 날짜로 설정
+    if (lastClickedDate.isValid()) {
+        dateEdit->setDate(lastClickedDate);
+    } else {
+        dateEdit->setDate(QDate::currentDate());
+    }
+
+    // 시간은 현재 시간으로 설정
+    startTimeEdit->setTime(QTime::currentTime());
+    endTimeEdit->setTime(QTime::currentTime().addSecs(3600));
+    deleteButton->setEnabled(false);
+
     // 일정 추가/편집 화면으로 전환
     stackedWidget->setCurrentWidget(editEventPage);
 }
@@ -247,12 +270,25 @@ void MainWindow::onSaveButtonClicked()
     }
 
     // 이벤트 데이터를 CSV 파일에 저장
-    if (calendarManager->saveEvent(eventName, eventDate, startTime, endTime)) {
+    bool success = false;
+    if (currentEditingEvent.name.isEmpty()) {
+        // 새 일정 추가
+        success = calendarManager->saveEvent(eventName, eventDate, startTime, endTime);
+    } else {
+        // 기존 일정 수정
+        success = calendarManager->updateEvent(currentEditingEvent, eventName, eventDate, startTime, endTime);
+    }
+
+    if (success) {
         QMessageBox::information(this, "저장 완료", "일정이 저장되었습니다.");
         calendarManager->loadEvents();
+        updateCalendarView();  // 캘린더 뷰 업데이트
     } else {
         QMessageBox::critical(this, "저장 실패", "일정을 저장하는 데 실패했습니다.");
     }
+
+    // 현재 수정 중인 이벤트 초기화
+    currentEditingEvent = Event();
 
     // 캘린더 화면으로 돌아가기
     stackedWidget->setCurrentWidget(calendarPage);
@@ -261,6 +297,47 @@ void MainWindow::onSaveButtonClicked()
 
 void MainWindow::onCancelButtonClicked()
 {
+    // 현재 수정 중인 이벤트 초기화
+    currentEditingEvent = Event();
+
     // 캘린더 화면으로 돌아가기
     stackedWidget->setCurrentWidget(calendarPage);
+}
+
+void MainWindow::onDeleteButtonClicked()
+{
+    if (currentEditingEvent.name.isEmpty()) {
+        QMessageBox::warning(this, "삭제 오류", "삭제할 이벤트가 선택되지 않았습니다.");
+        return;
+    }
+
+    QMessageBox::StandardButton reply;
+    reply = QMessageBox::question(this, "이벤트 삭제", "정말로 이 이벤트를 삭제하시겠습니까?",
+                                  QMessageBox::Yes|QMessageBox::No);
+    if (reply == QMessageBox::Yes) {
+        if (calendarManager->deleteEvent(currentEditingEvent)) {
+            QMessageBox::information(this, "삭제 완료", "이벤트가 삭제되었습니다.");
+            calendarManager->loadEvents();
+            updateCalendarView();
+            stackedWidget->setCurrentWidget(calendarPage);
+        } else {
+            QMessageBox::critical(this, "삭제 실패", "이벤트 삭제에 실패했습니다.");
+        }
+    }
+}
+
+void MainWindow::onEventDoubleClicked(const Event &event) {
+    // 현재 수정 중인 이벤트 저장
+    currentEditingEvent = event;
+
+    // 일정 수정 화면의 필드들을 현재 이벤트 정보로 채우기
+    eventTitleLabel->setText("일정 수정");
+    eventNameLineEdit->setText(event.name);
+    dateEdit->setDate(event.date);
+    startTimeEdit->setTime(event.startTime);
+    endTimeEdit->setTime(event.endTime);
+    deleteButton->setEnabled(true);
+
+    // 일정 수정 화면으로 전환
+    stackedWidget->setCurrentWidget(editEventPage);
 }

@@ -29,6 +29,9 @@ private slots:
     void onAddEventButtonClicked();
     void onSaveButtonClicked();
     void onCancelButtonClicked();
+    void onDeleteButtonClicked();
+    void onEventDoubleClicked(const Event &event);
+
 
 private:
     void updateMonthLabel();
@@ -44,6 +47,7 @@ private:
     QPushButton *nextMonthButton;
     QLabel *monthLabel;
     QDate currentMonth;
+    QDate lastClickedDate;
 
     // 일정 추가/편집 화면
     QLabel *eventTitleLabel;
@@ -53,7 +57,10 @@ private:
     QTimeEdit *endTimeEdit;
     QPushButton *saveButton;
     QPushButton *cancelButton;
+    QPushButton *deleteButton;
     CalendarManager *calendarManager;
+
+    Event currentEditingEvent;  // 현재 수정 중인 이벤트를 저장
 
     // 위젯
     QWidget *calendarPage;
