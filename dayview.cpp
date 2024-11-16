@@ -72,14 +72,12 @@ void DayView::displaySchedule(const QDate &date, const QList<Event> &events) {
     gridLayout->setSpacing(0);
     gridLayout->setContentsMargins(0, 0, 0, 0);
 
+    const int ROW_HEIGHT = 30; // 각 행의 높이를 상수로 정의
+    const int MIN_COLUMNS = 3; // 최소 column 수를 3으로 설정
+
     // 시간 슬롯과 선 추가
     for (int row = 0; row < 24 * 2; ++row) {
         // 시간 표시 레이블
-        QWidget* timeContainer = new QWidget();
-        QVBoxLayout* timeLayout = new QVBoxLayout(timeContainer);
-        timeLayout->setContentsMargins(0, 0, 0, 0);
-        timeLayout->setSpacing(0);
-
         QLabel *timeLabel = new QLabel(
             QString("%1:%2")
                 .arg(row / 2, 2, 10, QChar('0'))
@@ -89,13 +87,10 @@ void DayView::displaySchedule(const QDate &date, const QList<Event> &events) {
             "color: #666;"
             "font-size: 12px;"
             "padding-right: 5px;"
-            "background: transparent;"
             );
         timeLabel->setFixedWidth(45);
-        timeLabel->setAlignment(Qt::AlignRight | Qt::AlignBottom);
-
-        timeLayout->addWidget(timeLabel);
-        timeLayout->addStretch();
+        timeLabel->setFixedHeight(ROW_HEIGHT);
+        timeLabel->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
 
         // 가로선
         QFrame *line = new QFrame();
@@ -105,9 +100,14 @@ void DayView::displaySchedule(const QDate &date, const QList<Event> &events) {
         line->setFixedHeight(1);
 
         // 레이아웃에 추가
-        gridLayout->addWidget(timeContainer, row, 0);
+        gridLayout->addWidget(timeLabel, row, 0);
         gridLayout->addWidget(line, row, 1, 1, -1);
-        gridLayout->setRowMinimumHeight(row, 30);
+        gridLayout->setRowMinimumHeight(row, ROW_HEIGHT);
+    }
+
+    // 최소 3개의 column 확보
+    for (int col = 1; col <= MIN_COLUMNS; ++col) {
+        gridLayout->setColumnStretch(col, 1);
     }
 
     // 일정 추가
@@ -115,8 +115,17 @@ void DayView::displaySchedule(const QDate &date, const QList<Event> &events) {
         int startRow = event.startTime.hour() * 2 + (event.startTime.minute() / 30);
         int endRow = event.endTime.hour() * 2 + (event.endTime.minute() / 30);
         int rowSpan = endRow - startRow;
+        if(rowSpan==0) {
+            endRow += 1;
+            rowSpan = 1;
+        }
 
-        QLabel *eventLabel = new QLabel(
+        QWidget* eventWidget = new QWidget();
+        QVBoxLayout* eventLayout = new QVBoxLayout(eventWidget);
+        eventLayout->setContentsMargins(2, 0, 2, 0);
+        eventLayout->setSpacing(0);
+
+        QLabel* eventLabel = new QLabel(
             QString("%1\n%2 - %3")
                 .arg(event.name)
                 .arg(event.startTime.toString("hh:mm"))
@@ -128,27 +137,43 @@ void DayView::displaySchedule(const QDate &date, const QList<Event> &events) {
             "   border: 1px solid #666666;"
             "   border-radius: 3px;"
             "   padding: 5px;"
-            "   margin: 1px;"
+            "   margin: 0px;"
             "}"
             );
         eventLabel->setWordWrap(true);
         eventLabel->setAlignment(Qt::AlignTop | Qt::AlignLeft);
 
+        eventLayout->addWidget(eventLabel);
+
+        // 이벤트 위젯의 전체 높이 설정 (한 셀 더 추가)
+        int totalHeight = (rowSpan + 1) * ROW_HEIGHT;
+        eventWidget->setFixedHeight(totalHeight);
+
+        // 컨테이너 위젯 생성
+        QWidget* containerWidget = new QWidget();
+        containerWidget->setObjectName("EventContainer"); // 객체 이름 설정
+
+        QVBoxLayout* containerLayout = new QVBoxLayout(containerWidget);
+        containerLayout->setContentsMargins(0, ROW_HEIGHT/2, 0, 0);
+        containerLayout->setSpacing(0);
+        containerLayout->addWidget(eventWidget);
+
         // 일정 배치 (겹치기 고려)
         int column = 1;
-        while (true) {
-            bool canPlace = true;
-            for (int row = startRow; row < endRow; ++row) {
-                if (gridLayout->itemAtPosition(row, column) != nullptr) {
-                    canPlace = false;
-                    break;
-                }
+        bool placed = false;
+
+        // 겹치지 않는 column을 찾을 때까지 반복
+        while (!placed) {
+            // 해당 column에 EventContainer가 있는지 확인
+            if (!checkEventContainer(gridLayout, startRow, endRow, column)) {
+                // EventContainer가 없으면 해당 column에 배치
+                containerWidget->setObjectName("EventContainer");
+                gridLayout->addWidget(containerWidget, startRow, column, rowSpan + 1, 1);
+                placed = true;
+            } else {
+                // EventContainer가 있으면 다음 column 검사
+                column++;
             }
-            if (canPlace) {
-                gridLayout->addWidget(eventLabel, startRow, column, rowSpan, 1);
-                break;
-            }
-            ++column;
         }
     }
 
@@ -159,6 +184,28 @@ void DayView::displaySchedule(const QDate &date, const QList<Event> &events) {
     outerLayout->setContentsMargins(0, 0, 0, 0);
     outerLayout->addWidget(scheduleWidget);
     scheduleLayout->addLayout(outerLayout);
+}
+
+bool DayView::checkEventContainer(QGridLayout* gridLayout, int startRow, int endRow, int column) {
+    // 모든 아이템을 순회
+    for (int i = 0; i < gridLayout->count(); ++i) {
+        QLayoutItem* item = gridLayout->itemAt(i);
+        if (item && item->widget()) {
+            // 아이템의 위치 정보 가져오기
+            int itemRow, itemCol, rowSpan, colSpan;
+            gridLayout->getItemPosition(i, &itemRow, &itemCol, &rowSpan, &colSpan);
+
+            // 검사하려는 column과 row 범위에 있는지 확인
+            if (itemCol == column &&
+                item->widget()->objectName() == "EventContainer") {
+                // 아이템의 row 범위가 검사 범위와 겹치는지 확인
+                if ((itemRow <= endRow + 1 && itemRow + rowSpan > startRow)) {
+                    return 1;
+                }
+            }
+        }
+    }
+    return 0;
 }
 
 

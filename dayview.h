@@ -16,6 +16,7 @@ class DayView : public QWidget {
 
 public:
     explicit DayView(QWidget *parent = nullptr);
+    bool checkEventContainer(QGridLayout* gridLayout, int startRow, int endRow, int column);
     void displaySchedule(const QDate &date, const QList<Event> &events);
 
 signals:
@@ -23,6 +24,7 @@ signals:
 
 private slots:
     void onBackButtonClicked(); // 뒤로가기 슬롯
+
 
 private:
     QLabel *dateLabel;
