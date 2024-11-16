@@ -33,18 +33,26 @@ QVariant CalendarModel::data(const QModelIndex &index, int role) const
     if (dayNumber > 0 && dayNumber <= daysInMonth) {
         QDate date = QDate(firstDayOfMonth.year(), firstDayOfMonth.month(), dayNumber);
 
-        if (role == Qt::DisplayRole) {
+        switch (role) {
+        case Qt::DisplayRole:
             // 날짜를 반환
             return QString::number(dayNumber);
-        }
-        else if (role == Qt::UserRole) {
+
+        case Qt::UserRole:
+            // 날짜 객체를 반환
+            return date;
+
+        case Qt::UserRole + 1:
             // 첫 번째 일정 이름 반환 (있을 경우)
-            QList<Event> events = calendarManager->getEventsForDate(date);
-            if (!events.isEmpty()) {
-                return events[0].name;
+            {
+                QList<Event> events = calendarManager->getEventsForDate(date);
+                if (!events.isEmpty()) {
+                    return events[0].name;
+                }
             }
-        }
-        else if (role == Qt::TextAlignmentRole) {
+            break;
+
+        case Qt::TextAlignmentRole:
             return Qt::AlignCenter;  // 날짜는 상단 가운데 정렬
         }
     }

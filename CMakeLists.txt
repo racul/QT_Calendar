@@ -31,10 +31,12 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
 
         mainwindow.h mainwindow.cpp mainwindow.ui
 
-        createeventdialog.h createeventdialog.cpp createeventdialog.ui
+
         dayview.h dayview.cpp dayview.ui
         calendarmodel.h calendarmodel.cpp
         calendardelegate.h calendardelegate.cpp
+        eventeditpage.h eventeditpage.cpp
+        calendarpage.h calendarpage.cpp
 
     )
 # Define target properties for Android with Qt 6 as:

@@ -1,5 +1,6 @@
 #include "calendardelegate.h"
 #include <QApplication>
+#include <QDate>
 
 CalendarDelegate::CalendarDelegate(QObject *parent)
     : QStyledItemDelegate(parent)
@@ -10,16 +11,21 @@ void CalendarDelegate::paint(QPainter *painter, const QStyleOptionViewItem &opti
 {
     painter->save();
 
-    // 셀 배경 색상 설정 (선택된 경우와 그렇지 않은 경우)
+    QDate currentDate = QDate::currentDate();
+    QDate cellDate = index.data(Qt::UserRole).toDate();  // 셀의 날짜 정보
+
+    // 셀 배경 색상 설정
     if (option.state & QStyle::State_Selected) {
-        painter->fillRect(option.rect, QColor("#E0E0E0"));  // 연한 회색 배경
+        painter->fillRect(option.rect, QColor("#E0E0E0"));  // 연한 회색 배경 (선택된 경우)
+    } else if (cellDate == currentDate) {
+        painter->fillRect(option.rect, QColor(255, 255, 224));  // 연한 노란색 배경 (현재 날짜)
     } else {
         painter->fillRect(option.rect, option.palette.base());
     }
 
     // 날짜 및 일정 정보 가져오기
     QString dayText = index.data(Qt::DisplayRole).toString();  // 날짜 정보
-    QString eventText = index.data(Qt::UserRole).toString();   // 일정 정보
+    QString eventText = index.data(Qt::UserRole + 1).toString();   // 일정 정보
 
     // 텍스트 위치 설정
     QRect dayRect = option.rect.adjusted(5, 5, -5, -option.rect.height() / 2);
