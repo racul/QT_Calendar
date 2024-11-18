@@ -17,6 +17,8 @@ class DayView : public QWidget {
 public:
     explicit DayView(QWidget *parent = nullptr);
     bool checkEventContainer(QGridLayout* gridLayout, int startRow, int endRow, int column);
+    void clearLayout(QLayout *layout);
+    void clearSchedule();
     void displaySchedule(const QDate &date, const QList<Event> &events);
 
 protected:

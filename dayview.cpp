@@ -58,15 +58,40 @@ DayView::DayView(QWidget *parent)
     mainLayout->addLayout(buttonLayout);
 }
 
+void DayView::clearSchedule() {
+    // 모든 위젯과 레이아웃 아이템 제거
+    QLayoutItem *item;
+    while ((item = scheduleLayout->takeAt(0)) != nullptr) {
+        if (QWidget *widget = item->widget()) {
+            widget->setParent(nullptr);
+            widget->deleteLater();
+        }
+        if (QLayout *childLayout = item->layout()) {
+            clearLayout(childLayout);
+        }
+        delete item;
+    }
+}
+
+void DayView::clearLayout(QLayout *layout) {
+    QLayoutItem *item;
+    while ((item = layout->takeAt(0)) != nullptr) {
+        if (QWidget *widget = item->widget()) {
+            widget->setParent(nullptr);
+            widget->deleteLater();
+        }
+        if (QLayout *childLayout = item->layout()) {
+            clearLayout(childLayout);
+        }
+        delete item;
+    }
+}
+
 void DayView::displaySchedule(const QDate &date, const QList<Event> &events) {
     qDebug() << "Displaying schedule for date:" << date;
 
     // 기존 일정 제거
-    QLayoutItem *item;
-    while ((item = scheduleLayout->takeAt(0)) != nullptr) {
-        delete item->widget();
-        delete item;
-    }
+    clearSchedule();
 
     // 새로운 Grid Layout 생성
     QGridLayout *gridLayout = new QGridLayout();
@@ -159,7 +184,7 @@ void DayView::displaySchedule(const QDate &date, const QList<Event> &events) {
         containerWidget->setObjectName("EventContainer"); // 객체 이름 설정
 
         QVBoxLayout* containerLayout = new QVBoxLayout(containerWidget);
-        containerLayout->setContentsMargins(0, ROW_HEIGHT/2, 0, 0);
+        containerLayout->setContentsMargins(0, ROW_HEIGHT/2, 0, ROW_HEIGHT/2);
         containerLayout->setSpacing(0);
         containerLayout->addWidget(eventWidget);
 
